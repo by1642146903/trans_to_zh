@@ -40,11 +40,18 @@ import urllib.parse
 import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-# MODEL = os.environ.get("OLLAMA_TRANS_MODEL", "translategemma:12b")
-MODEL = os.environ.get("OLLAMA_TRANS_MODEL", "translategemma:4b")
+MODEL = os.environ.get("OLLAMA_TRANS_MODEL", "hy-mt")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 HOST = os.environ.get("HOST", "127.0.0.1")
 DEFAULT_TARGET = "zh-Hans"   # 默认目标语言：简体中文
+# 后端选择：auto=根据模型名自动判断；translategemma=用 TranslateGemma 模板；hymt=用 Hy-MT 模板
+BACKEND = os.environ.get("BACKEND", "auto")
+
+
+def resolve_backend():
+    if BACKEND == "auto":
+        return "hymt" if "hy" in MODEL.lower() else "translategemma"
+    return BACKEND
 
 # langdetect 的 ISO 639-1 代码 -> (语言英文名, TranslateGemma 语言代码)
 LANG_MAP = {
@@ -168,6 +175,42 @@ def build_prompt(text, src, tgt):
     )
 
 
+# Hy-MT 目标语言代码 -> 中文名（中文模板用）
+TGT_ZH = {
+    "zh-Hans": "中文", "zh-Hant": "繁体中文", "en": "英语", "ja": "日语",
+    "ko": "韩语", "fr": "法语", "de": "德语", "es": "西班牙语", "ru": "俄语",
+    "it": "意大利语", "pt": "葡萄牙语", "nl": "荷兰语", "pl": "波兰语",
+    "ar": "阿拉伯语", "tr": "土耳其语", "vi": "越南语", "th": "泰语",
+    "id": "印尼语", "uk": "乌克兰语", "sv": "瑞典语", "da": "丹麦语",
+    "fi": "芬兰语", "hu": "匈牙利语", "cs": "捷克语", "ro": "罗马尼亚语",
+    "el": "希腊语", "he": "希伯来语", "hi": "印地语", "ms": "马来语",
+    "tl": "他加禄语", "fa": "波斯语", "bn": "孟加拉语",
+}
+
+
+def build_prompt_hymt(text, src, tgt):
+    """按腾讯 Hy-MT 官方模板构造 prompt"""
+    src_name, src_code = src
+    tgt_name, tgt_code = tgt
+    if src_code.startswith("zh"):
+        # 中文 -> 其他语言：用中文模板
+        zh_name = TGT_ZH.get(tgt_code, tgt_name)
+        return (
+            f"将以下文本翻译为{zh_name}，注意只需要输出翻译后的结果，不要额外解释：\n{text}"
+        )
+    # 其他语言 -> 目标语言（非中）：用英文模板
+    return (
+        f"Translate the following segment into {tgt_name}, without additional explanation.\n\n{text}"
+    )
+
+
+def make_prompt(text, src, tgt):
+    """按当前后端选择正确的 prompt 构造器"""
+    if resolve_backend() == "hymt":
+        return build_prompt_hymt(text, src, tgt)
+    return build_prompt(text, src, tgt)
+
+
 def call_ollama(prompt):
     body = json.dumps({
         "model": MODEL,
@@ -262,12 +305,12 @@ def handle_translate(text, source, target):
     if len(text) > 800:
         chunks = split_text(text)
         translation = "\n".join(
-            call_ollama(build_prompt(c, src, tgt)) for c in chunks
+            call_ollama(make_prompt(c, src, tgt)) for c in chunks
         )
         chunk_count = len(chunks)
     else:
         chunks = [text]
-        translation = call_ollama(build_prompt(text, src, tgt))
+        translation = call_ollama(make_prompt(text, src, tgt))
         chunk_count = 1
 
     return {
@@ -307,7 +350,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/health":
-            self._send_json(200, {"ok": True, "ollama": ollama_alive(), "model": MODEL})
+            self._send_json(200, {
+                "ok": True,
+                "ollama": ollama_alive(),
+                "model": MODEL,
+                "backend": resolve_backend(),
+            })
             return
         if parsed.path == "/translate":
             q = urllib.parse.parse_qs(parsed.query)
@@ -362,8 +410,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-

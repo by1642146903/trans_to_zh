@@ -1,4 +1,4 @@
-# tans_to_zh 混元模型速度最快
+# tans_to_zh
 
 # 1. 安装 Ollama
 brew install ollama
@@ -22,26 +22,20 @@ brew services start ollama      # 注册为后台服务，开机自启（macOS �
 brew services stop ollama       # 停止后台服务
 brew services list | grep ollama  # 查看服务状态
 ollama ps   # 确认模型已加载、占用多少内存
+brew services restart ollama   # 重启服务
 
 
-
-
-# 2. 按内存拉取对应模型
-ollama run translategemma:4b    # 8GB 内存
-ollama run translategemma:12b   # 16GB 内存
-ollama run translategemma:27b   # 24GB+ 内存
-
-# 3.用conda添加Python环境
+# 2.用conda添加Python环境
 conda create -n tans_to_zh python=3.11（3.11为python版本号）
 conda activate tans_to_zh
 删除指定环境：conda env remove -n tans_to_zh
 
 
-# 4.将创建的环境放到pycharm
+# 3.将创建的环境放到pycharm
 用conda env list查看创建环境所在路径，在pycharm上配置【pycharm软件右下角配置解释器，即当前使用的python版本】
 
 
-# 5.安装包
+# 4.安装包
 (1)命令行执行；
 conda install 包名
 (2)用pycharm终端安装
@@ -49,7 +43,7 @@ pip install 包名
 (3)pycharm左下角【python软件包】中搜索安装
 包有 torch,transformers,sentencepiece,fastapi,uvicorn,sacremoses
 
-# 6.常用命令
+# 5.常用命令
 创建环境	conda create --name <env_name>	可指定 Python 版本，如 conda create -n myenv python=3.10
 激活环境	conda activate <env_name>	
 退出环境	conda deactivate	回到 base 环境
@@ -61,25 +55,15 @@ pip install 包名
 导入环境	conda env create -f environment.yml	从 YAML 文件创建环境
 
 
-# 7.本项目安装包：
-pip install requests beautifulsoup4 fastapi "uvicorn[standard]" pydantic
+# 6.本项目安装包：
+pip install requests
 
 
 # 8.启动命令：
-python trans_to_zh.py
+python trans_to_zh_hy.py
 
 
 curl -X POST http://localhost:8882/translate -H 'Content-Type: application/json' -d '{"text": "Hello world"}'
-
-
-# 零成本系统级优化
-# 写入 macOS 系统环境变量（一次性）
-launchctl setenv OLLAMA_FLASH_ATTENTION 1      # 开启 Flash Attention，加速 prefill
-launchctl setenv OLLAMA_KV_CACHE_TYPE q8_0     # KV Cache 量化，内存减半、几乎无损
-launchctl setenv OLLAMA_KEEP_ALIVE -1          # 模型常驻内存，消除每次冷启动
-
-# 重启 Ollama 生效
-brew services restart ollama
 
 
 
