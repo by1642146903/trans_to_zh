@@ -80,3 +80,24 @@ launchctl setenv OLLAMA_KEEP_ALIVE -1          # 模型常驻内存，消除每�
 
 # 重启 Ollama 生效
 brew services restart ollama
+
+
+
+
+# 腾讯的混元模型
+curl -L -o HY-MT1.5-1.8B-Q4_K_M.gguf \
+  "https://modelscope.cn/models/Tencent-Hunyuan/HY-MT1.5-1.8B-GGUF/resolve/master/HY-MT1.5-1.8B-Q4_K_M.gguf"
+
+
+echo 'FROM ./HY-MT1.5-1.8B-Q4_K_M.gguf
+PARAMETER num_gpu 1
+PARAMETER temperature 0.7
+PARAMETER top_k 20
+PARAMETER top_p 0.6
+PARAMETER repeat_penalty 1.1' > Modelfile
+
+# 重新创建（覆盖旧模型）
+ollama create hy-mt -f Modelfile
+
+
+
