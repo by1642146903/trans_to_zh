@@ -33,6 +33,7 @@
 """
 import sys
 import os
+import re
 import json
 import urllib.request
 import urllib.parse
@@ -172,6 +173,10 @@ def call_ollama(prompt):
         "prompt": prompt,
         "stream": False,
         "keep_alive": "30m",   # 让模型保持常驻，避免每次冷启动
+        "options": {
+            "num_ctx": 2048,     # 缩小上下文窗口 -> 减少 prefill 时间和 KV cache 内存
+            "num_batch": 1024,   # 增大预填充批大小 -> 长 prompt 处理更快（默认 512）
+        },
     }).encode("utf-8")
     try:
         req = urllib.request.Request(
@@ -196,6 +201,27 @@ def ollama_alive():
             return resp.status == 200
     except Exception:
         return False
+
+
+def split_text(text, max_len=600):
+    """把长文本按句拆分，每块不超过 max_len 字符（单句超长则硬切）"""
+    parts = re.split(r"(?<=[。！？!?；;\n])", text)
+    chunks, cur = [], ""
+    for p in parts:
+        if not p:
+            continue
+        if len(cur) + len(p) <= max_len:
+            cur += p
+        else:
+            if cur:
+                chunks.append(cur)
+            while len(p) > max_len:
+                chunks.append(p[:max_len])
+                p = p[max_len:]
+            cur = p
+    if cur:
+        chunks.append(cur)
+    return [c for c in chunks if c.strip()]
 
 
 def handle_translate(text, source, target):
@@ -231,8 +257,17 @@ def handle_translate(text, source, target):
         )
     tgt = (TGT_LANGS[target], target)
 
-    prompt = build_prompt(text, src, tgt)
-    translation = call_ollama(prompt)
+    # 长文自动分块：避免单次超出上下文、提升长文翻译速度与质量
+    if len(text) > 800:
+        chunks = split_text(text)
+        translation = "\n".join(
+            call_ollama(build_prompt(c, src, tgt)) for c in chunks
+        )
+        chunk_count = len(chunks)
+    else:
+        chunks = [text]
+        translation = call_ollama(build_prompt(text, src, tgt))
+        chunk_count = 1
 
     return {
         "ok": True,
@@ -240,6 +275,7 @@ def handle_translate(text, source, target):
         "detected": detected,
         "source": {"name": src[0], "code": src[1]},
         "target": {"name": tgt[0], "code": tgt[1]},
+        "chunks": chunk_count,
         "translation": translation,
     }
 
@@ -325,3 +361,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+

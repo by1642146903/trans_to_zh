@@ -72,3 +72,11 @@ python trans_to_zh.py
 curl -X POST http://localhost:8882/translate -H 'Content-Type: application/json' -d '{"text": "Hello world"}'
 
 
+# 零成本系统级优化
+# 写入 macOS 系统环境变量（一次性）
+launchctl setenv OLLAMA_FLASH_ATTENTION 1      # 开启 Flash Attention，加速 prefill
+launchctl setenv OLLAMA_KV_CACHE_TYPE q8_0     # KV Cache 量化，内存减半、几乎无损
+launchctl setenv OLLAMA_KEEP_ALIVE -1          # 模型常驻内存，消除每次冷启动
+
+# 重启 Ollama 生效
+brew services restart ollama
