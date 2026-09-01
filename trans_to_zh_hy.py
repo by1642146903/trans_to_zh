@@ -41,7 +41,7 @@ import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MODEL = os.environ.get("OLLAMA_TRANS_MODEL", "hy-mt")
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
 HOST = os.environ.get("HOST", "127.0.0.1")
 DEFAULT_TARGET = "zh-Hans"   # 默认目标语言：简体中文
 # 后端选择：auto=根据模型名自动判断；translategemma=用 TranslateGemma 模板；hymt=用 Hy-MT 模板

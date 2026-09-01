@@ -68,8 +68,9 @@ curl -X POST http://localhost:8882/translate -H 'Content-Type: application/json'
 
 
 # 腾讯的混元模型
-curl -L -o HY-MT1.5-1.8B-Q4_K_M.gguf \
-  "https://modelscope.cn/models/Tencent-Hunyuan/HY-MT1.5-1.8B-GGUF/resolve/master/HY-MT1.5-1.8B-Q4_K_M.gguf"
+curl -L -o HY-MT1.5-1.8B-Q4_K_M.gguf  "https://modelscope.cn/models/Tencent-Hunyuan/HY-MT1.5-1.8B-GGUF/resolve/master/HY-MT1.5-1.8B-Q4_K_M.gguf"
+curl -L -C - -o HY-MT1.5-1.8B-Q4_K_M.gguf "https://modelscope.cn/models/Tencent-Hunyuan/HY-MT1.5-1.8B-GGUF/resolve/master/HY-MT1.5-1.8B-Q4_K_M.gguf"
+
 
 
 echo 'FROM ./HY-MT1.5-1.8B-Q4_K_M.gguf
@@ -82,5 +83,7 @@ PARAMETER repeat_penalty 1.1' > Modelfile
 # 重新创建（覆盖旧模型）
 ollama create hy-mt -f Modelfile
 
+# 报错更新ollama
+brew upgrade ollama
 
-
+lsof -i tcp:8882 
