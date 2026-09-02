@@ -60,7 +60,7 @@ pip install requests
 
 
 # 8.启动命令：
-python trans_to_zh_hy.py
+python trans_to_zh.py
 
 
 curl -X POST http://localhost:8882/translate -H 'Content-Type: application/json' -d '{"text": "Hello world"}'
@@ -71,14 +71,19 @@ curl -X POST http://localhost:8882/translate -H 'Content-Type: application/json'
 curl -L -o HY-MT1.5-1.8B-Q4_K_M.gguf  "https://modelscope.cn/models/Tencent-Hunyuan/HY-MT1.5-1.8B-GGUF/resolve/master/HY-MT1.5-1.8B-Q4_K_M.gguf"
 curl -L -C - -o HY-MT1.5-1.8B-Q4_K_M.gguf "https://modelscope.cn/models/Tencent-Hunyuan/HY-MT1.5-1.8B-GGUF/resolve/master/HY-MT1.5-1.8B-Q4_K_M.gguf"
 
-
-
 echo 'FROM ./HY-MT1.5-1.8B-Q4_K_M.gguf
 PARAMETER num_gpu 1
 PARAMETER temperature 0.7
 PARAMETER top_k 20
 PARAMETER top_p 0.6
 PARAMETER repeat_penalty 1.1' > Modelfile
+
+# 测试效果
+curl http://localhost:11434/api/generate -d '{                                                               
+  "model": "hy-mt",
+  "prompt": "Translate the following segment into Chinese, without additional explanation.\n\nIt is on the house.",
+  "stream": false
+}'
 
 # 重新创建（覆盖旧模型）
 ollama create hy-mt -f Modelfile
